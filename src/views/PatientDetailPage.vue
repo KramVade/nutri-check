@@ -12,6 +12,13 @@
       <tr><th>Category</th><td>{{ patient.category }}</td></tr>
       <tr><th>Date</th><td>{{ patient.timestamp ? new Date(patient.timestamp.seconds * 1000).toLocaleString() : '' }}</td></tr>
     </table>
+    <div class="actions">
+      <button @click="$router.push('/patients')" class="back-btn">Back to Patient List</button>
+      <button @click="$router.push('/dashboard')" class="home-btn">Dashboard</button>
+    </div>
+  </div>
+  <div v-else class="detail-container">
+    <p>Loading patient details...</p>
   </div>
 </template>
 
@@ -42,6 +49,7 @@ onMounted(async () => {
 table {
   width: 100%;
   border-collapse: collapse;
+  margin-bottom: 20px;
 }
 th, td {
   text-align: left;
@@ -50,5 +58,31 @@ th, td {
 }
 th {
   background: #f5f5f5;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.back-btn, .home-btn {
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.back-btn {
+  background-color: #42b983;
+}
+.back-btn:hover {
+  background-color: #369e73;
+}
+.home-btn {
+  background-color: #6c757d;
+}
+.home-btn:hover {
+  background-color: #5a6268;
 }
 </style>
