@@ -1,12 +1,10 @@
 <template>
-  <div class="login-page">
+  <div class="patient-login-page">
     <!-- Navigation -->
     <nav class="nav-bar">
       <div class="nav-container">
         <div class="logo" @click="$router.push('/')">
-          <div class="logo-icon">
-            <HeartIcon class="icon" />
-          </div>
+          <HeartIcon class="logo-icon" />
           <span class="logo-text">Nutri-Check</span>
         </div>
         <button @click="$router.push('/')" class="back-btn">
@@ -23,24 +21,24 @@
           <!-- Left Side - Branding -->
           <div class="login-branding">
             <div class="brand-icon-wrapper">
-              <HeartIcon class="brand-icon" />
+              <UserCircleIcon class="brand-icon" />
             </div>
-            <h2 class="brand-title">Medical Professional Portal</h2>
+            <h2 class="brand-title">Patient Portal</h2>
             <p class="brand-subtitle">
-              Secure access for healthcare providers. Manage patient records, track BMI data, and deliver quality care.
+              Your personal health dashboard. Track your BMI, monitor your wellness journey, and get personalized health insights.
             </p>
             <div class="features-list">
               <div class="feature-item">
                 <CheckCircleIcon class="check-icon" />
-                <span>Manage patient records</span>
+                <span>Track your BMI progress</span>
               </div>
               <div class="feature-item">
                 <CheckCircleIcon class="check-icon" />
-                <span>Track health metrics</span>
+                <span>View your health history</span>
               </div>
               <div class="feature-item">
                 <CheckCircleIcon class="check-icon" />
-                <span>Secure cloud storage</span>
+                <span>Get personalized health tips</span>
               </div>
             </div>
           </div>
@@ -48,28 +46,13 @@
           <!-- Right Side - Form -->
           <div class="login-form-wrapper">
             <div class="form-header">
-              <h1 class="form-title">{{ isSignUp ? 'Create Account' : 'Welcome Back' }}</h1>
+              <h1 class="form-title">{{ isSignUp ? 'Create Your Account' : 'Welcome Back' }}</h1>
               <p class="form-subtitle">
-                {{ isSignUp ? 'Register as a medical professional to get started' : 'Sign in to access patient records and manage health data' }}
+                {{ isSignUp ? 'Register to start tracking your health' : 'Sign in to access your health dashboard' }}
               </p>
             </div>
 
-            <form @submit.prevent="isSignUp ? handleSignUp : handleLogin" class="login-form">
-              <div v-if="isSignUp" class="form-group">
-                <label for="name" class="form-label">
-                  <UserIcon class="label-icon" />
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  v-model="fullName"
-                  placeholder="Dr. John Smith"
-                  required
-                  class="form-input"
-                />
-              </div>
-
+            <form @submit.prevent="handleSubmit" class="login-form">
               <div class="form-group">
                 <label for="email" class="form-label">
                   <EnvelopeIcon class="label-icon" />
@@ -94,27 +77,74 @@
                   id="password"
                   type="password"
                   v-model="password"
-                  :placeholder="isSignUp ? 'Create a password (min. 6 characters)' : 'Enter your password'"
+                  placeholder="Enter your password"
                   required
                   class="form-input"
                   :minlength="6"
                 />
               </div>
 
-              <div v-if="isSignUp" class="form-group">
-                <label for="confirmPassword" class="form-label">
-                  <LockClosedIcon class="label-icon" />
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  type="password"
-                  v-model="confirmPassword"
-                  placeholder="Re-enter your password"
-                  required
-                  class="form-input"
-                  :minlength="6"
-                />
+              <div v-if="isSignUp" class="signup-fields">
+                <div class="form-group">
+                  <label for="name" class="form-label">
+                    <UserIcon class="label-icon" />
+                    Full Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    v-model="name"
+                    placeholder="Enter your full name"
+                    required
+                    class="form-input"
+                  />
+                </div>
+
+                <div class="form-row two-cols">
+                  <div class="form-group">
+                    <label for="age" class="form-label">
+                      <CalendarIcon class="label-icon" />
+                      Age
+                    </label>
+                    <input
+                      id="age"
+                      type="number"
+                      v-model.number="age"
+                      placeholder="Age"
+                      required
+                      min="1"
+                      max="150"
+                      class="form-input"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="gender" class="form-label">
+                      <UserCircleIcon class="label-icon" />
+                      Gender
+                    </label>
+                    <select id="gender" v-model="gender" required class="form-select">
+                      <option disabled value="">Select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="contact" class="form-label">
+                    <PhoneIcon class="label-icon" />
+                    Contact Number
+                  </label>
+                  <input
+                    id="contact"
+                    type="tel"
+                    v-model="contact"
+                    placeholder="Enter contact number"
+                    class="form-input"
+                  />
+                </div>
               </div>
 
               <div v-if="error" class="error-message">
@@ -122,27 +152,21 @@
                 <span>{{ error }}</span>
               </div>
 
-              <button 
-                type="submit" 
-                class="submit-btn" 
-                :disabled="loading"
-                @click="testButtonClick"
-              >
+              <button type="submit" class="submit-btn" :disabled="loading">
                 <span v-if="!loading">{{ isSignUp ? 'Create Account' : 'Sign In' }}</span>
-                <span v-else>{{ isSignUp ? 'Creating account...' : 'Signing in...' }}</span>
+                <span v-else>{{ isSignUp ? 'Creating Account...' : 'Signing In...' }}</span>
                 <ArrowRightIcon v-if="!loading" class="btn-arrow" />
               </button>
-
-              <div class="toggle-mode">
-                <p class="toggle-text">
-                  {{ isSignUp ? 'Already have an account?' : "Don't have an account?" }}
-                  <button type="button" @click="toggleMode" class="toggle-btn">
-                    {{ isSignUp ? 'Sign In' : 'Sign Up' }}
-                  </button>
-                </p>
-              </div>
             </form>
 
+            <div class="toggle-section">
+              <p class="toggle-text">
+                {{ isSignUp ? 'Already have an account?' : "Don't have an account?" }}
+                <a @click="toggleMode" class="toggle-link">
+                  {{ isSignUp ? 'Sign In' : 'Sign Up' }}
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -159,190 +183,127 @@ import {
   HeartIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
+  UserIcon,
+  UserCircleIcon,
   EnvelopeIcon,
   LockClosedIcon,
+  CalendarIcon,
+  PhoneIcon,
   CheckCircleIcon,
-  ExclamationCircleIcon,
-  UserIcon
+  ExclamationCircleIcon
 } from '@heroicons/vue/24/solid'
 
+const router = useRouter()
 const email = ref('')
 const password = ref('')
-const confirmPassword = ref('')
-const fullName = ref('')
+const name = ref('')
+const age = ref(null)
+const gender = ref('')
+const contact = ref('')
 const error = ref('')
 const loading = ref(false)
 const isSignUp = ref(false)
-const router = useRouter()
 
 const toggleMode = () => {
-  console.log('Toggle mode clicked, current isSignUp:', isSignUp.value)
   isSignUp.value = !isSignUp.value
-  console.log('New isSignUp value:', isSignUp.value)
   error.value = ''
-  email.value = ''
-  password.value = ''
-  confirmPassword.value = ''
-  fullName.value = ''
+  // Clear form
+  if (!isSignUp.value) {
+    name.value = ''
+    age.value = null
+    gender.value = ''
+    contact.value = ''
+  }
 }
 
-const testButtonClick = (e) => {
-  console.log('🔵 BUTTON CLICKED!')
-  console.log('isSignUp:', isSignUp.value)
-  console.log('Form values:', {
-    fullName: fullName.value,
-    email: email.value,
-    password: password.value ? 'has value' : 'empty',
-    confirmPassword: confirmPassword.value ? 'has value' : 'empty'
-  })
-  
-  // Prevent default and call the appropriate handler
-  e.preventDefault()
-  if (isSignUp.value) {
-    handleSignUp()
-  } else {
-    handleLogin()
+const handleSubmit = async () => {
+  error.value = ''
+  loading.value = true
+
+  try {
+    if (isSignUp.value) {
+      await handleSignUp()
+    } else {
+      await handleSignIn()
+    }
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
   }
+}
+
+// Simple hash function (for demo - use bcrypt in production)
+const hashPassword = async (password) => {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(password)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 const handleSignUp = async () => {
-  console.log('=== SIGN UP STARTED ===')
-  error.value = ''
+  // Check if email already exists
+  const q = query(collection(db, 'patientAccounts'), where('email', '==', email.value.toLowerCase()))
+  const querySnapshot = await getDocs(q)
   
-  console.log('Form values:', {
-    fullName: fullName.value,
-    email: email.value,
-    passwordLength: password.value.length,
-    confirmPasswordLength: confirmPassword.value.length
-  })
-  
-  // Validate passwords match
-  if (password.value !== confirmPassword.value) {
-    console.log('❌ Passwords do not match')
-    error.value = 'Passwords do not match.'
-    return
+  if (!querySnapshot.empty) {
+    throw new Error('Email already registered. Please sign in instead.')
   }
-  console.log('✓ Passwords match')
-  
-  // Validate password length
-  if (password.value.length < 6) {
-    console.log('❌ Password too short:', password.value.length)
-    error.value = 'Password must be at least 6 characters long.'
-    return
+
+  // Hash password
+  const hashedPassword = await hashPassword(password.value)
+
+  // Create patient account
+  const patientData = {
+    email: email.value.toLowerCase(),
+    password: hashedPassword,
+    name: name.value,
+    age: age.value,
+    gender: gender.value,
+    contact: contact.value,
+    createdAt: new Date(),
+    lastLogin: new Date()
   }
-  console.log('✓ Password length valid')
+
+  const docRef = await addDoc(collection(db, 'patientAccounts'), patientData)
   
-  loading.value = true
-  console.log('Loading set to true')
+  // Store patient ID in session
+  sessionStorage.setItem('patientId', docRef.id)
+  sessionStorage.setItem('patientName', name.value)
+  sessionStorage.setItem('patientEmail', email.value)
   
-  try {
-    // Check if email already exists
-    console.log('Checking if email exists:', email.value)
-    const q = query(collection(db, 'medstaff'), where('email', '==', email.value))
-    const querySnapshot = await getDocs(q)
-    console.log('Query result - docs found:', querySnapshot.size)
-    
-    if (!querySnapshot.empty) {
-      console.log('❌ Email already exists')
-      error.value = 'This email is already registered. Please sign in instead.'
-      return
-    }
-    console.log('✓ Email is available')
-    
-    // Create new medical staff account in Firestore
-    console.log('Creating new document in medstaff collection...')
-    const docRef = await addDoc(collection(db, 'medstaff'), {
-      name: fullName.value,
-      email: email.value,
-      password: password.value, // In production, hash this!
-      role: 'medical_staff',
-      createdAt: new Date().toISOString()
-    })
-    console.log('✓ Document created with ID:', docRef.id)
-    
-    // Store staff ID in session
-    sessionStorage.setItem('medStaffId', docRef.id)
-    sessionStorage.setItem('medStaffName', fullName.value)
-    console.log('✓ Session storage set:', {
-      medStaffId: docRef.id,
-      medStaffName: fullName.value
-    })
-    
-    console.log('✓ Redirecting to dashboard...')
-    router.push('/dashboard')
-    console.log('=== SIGN UP COMPLETED SUCCESSFULLY ===')
-  } catch (err) {
-    console.error('❌ Sign up error:', err)
-    console.error('Error code:', err.code)
-    console.error('Error message:', err.message)
-    error.value = `Registration failed: ${err.message}`
-  } finally {
-    loading.value = false
-    console.log('Loading set to false')
-  }
+  // Redirect to patient dashboard
+  router.push('/patient-dashboard')
 }
 
-const handleLogin = async () => {
-  console.log('=== LOGIN STARTED ===')
-  error.value = ''
-  loading.value = true
+const handleSignIn = async () => {
+  // Find patient by email
+  const q = query(collection(db, 'patientAccounts'), where('email', '==', email.value.toLowerCase()))
+  const querySnapshot = await getDocs(q)
   
-  console.log('Login attempt with email:', email.value)
-  
-  try {
-    // Query Firestore for medical staff with matching email
-    console.log('Querying medstaff collection...')
-    const q = query(collection(db, 'medstaff'), where('email', '==', email.value))
-    const querySnapshot = await getDocs(q)
-    console.log('Query result - docs found:', querySnapshot.size)
-    
-    if (querySnapshot.empty) {
-      console.log('❌ No account found with this email')
-      error.value = 'Account not found. Please sign up first.'
-      return
-    }
-    console.log('✓ Account found')
-    
-    // Check password
-    const staffDoc = querySnapshot.docs[0]
-    const staffData = staffDoc.data()
-    console.log('Staff data:', {
-      id: staffDoc.id,
-      name: staffData.name,
-      email: staffData.email,
-      role: staffData.role
-    })
-    
-    if (staffData.password !== password.value) {
-      console.log('❌ Password mismatch')
-      error.value = 'Incorrect password. Please try again.'
-      return
-    }
-    console.log('✓ Password correct')
-    
-    // Store staff ID in session
-    sessionStorage.setItem('medStaffId', staffDoc.id)
-    sessionStorage.setItem('medStaffName', staffData.name)
-    console.log('✓ Session storage set:', {
-      medStaffId: staffDoc.id,
-      medStaffName: staffData.name
-    })
-    
-    console.log('✓ Redirecting to dashboard...')
-    router.push('/dashboard')
-    console.log('=== LOGIN COMPLETED SUCCESSFULLY ===')
-  } catch (err) {
-    console.error('❌ Login error:', err)
-    console.error('Error code:', err.code)
-    console.error('Error message:', err.message)
-    error.value = `Login failed: ${err.message}`
-  } finally {
-    loading.value = false
-    console.log('Loading set to false')
+  if (querySnapshot.empty) {
+    throw new Error('Account not found. Please check your email or sign up.')
   }
+
+  const patientDoc = querySnapshot.docs[0]
+  const patientData = patientDoc.data()
+
+  // Verify password
+  const hashedPassword = await hashPassword(password.value)
+  
+  if (hashedPassword !== patientData.password) {
+    throw new Error('Incorrect password. Please try again.')
+  }
+
+  // Store patient ID in session
+  sessionStorage.setItem('patientId', patientDoc.id)
+  sessionStorage.setItem('patientName', patientData.name)
+  sessionStorage.setItem('patientEmail', patientData.email)
+  
+  // Redirect to patient dashboard
+  router.push('/patient-dashboard')
 }
-
-
 </script>
 
 <style scoped>
@@ -352,7 +313,7 @@ const handleLogin = async () => {
   box-sizing: border-box;
 }
 
-.login-page {
+.patient-login-page {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   min-height: 100vh;
   background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
@@ -360,15 +321,13 @@ const handleLogin = async () => {
 
 /* Navigation */
 .nav-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid #e2e8f0;
-  z-index: 1000;
   padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .nav-container {
@@ -384,9 +343,6 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #2d3748;
   cursor: pointer;
   transition: opacity 0.3s ease;
 }
@@ -396,14 +352,15 @@ const handleLogin = async () => {
 }
 
 .logo-icon {
-  display: flex;
-  align-items: center;
-}
-
-.logo-icon .icon {
   width: 2rem;
   height: 2rem;
   color: #42b983;
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3748;
 }
 
 .back-btn {
@@ -427,14 +384,14 @@ const handleLogin = async () => {
 }
 
 .btn-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.125rem;
+  height: 1.125rem;
 }
 
 /* Login Section */
 .login-section {
-  padding: 6rem 2rem 4rem;
-  min-height: 100vh;
+  padding: 3rem 2rem;
+  min-height: calc(100vh - 80px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -548,6 +505,15 @@ const handleLogin = async () => {
   gap: 1.5rem;
 }
 
+.form-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-row.two-cols {
+  grid-template-columns: 1fr 1fr;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
@@ -569,7 +535,8 @@ const handleLogin = async () => {
   color: #42b983;
 }
 
-.form-input {
+.form-input,
+.form-select {
   width: 100%;
   padding: 0.875rem 1rem;
   border: 2px solid #e2e8f0;
@@ -578,9 +545,11 @@ const handleLogin = async () => {
   color: #2d3748;
   transition: all 0.3s ease;
   background: #f7fafc;
+  font-family: inherit;
 }
 
-.form-input:focus {
+.form-input:focus,
+.form-select:focus {
   outline: none;
   border-color: #42b983;
   background: white;
@@ -589,6 +558,28 @@ const handleLogin = async () => {
 
 .form-input::placeholder {
   color: #a0aec0;
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+.signup-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .error-message {
@@ -648,104 +639,28 @@ const handleLogin = async () => {
   transform: translateX(4px);
 }
 
-/* Divider */
-.divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 1.5rem 0;
-}
-
-.divider-line {
-  flex: 1;
-  height: 1px;
-  background: #e2e8f0;
-}
-
-.divider-text {
-  color: #a0aec0;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-/* Google Sign In Button */
-.google-btn {
-  width: 100%;
-  padding: 0.875rem 1.5rem;
-  background: white;
-  color: #2d3748;
-  border: 2px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.google-btn:hover:not(:disabled) {
-  background: #f7fafc;
-  border-color: #cbd5e0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.google-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.google-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-}
-
-.info-message {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-}
-
-.info-text {
-  font-size: 0.875rem;
-  color: #1e40af;
-  line-height: 1.5;
-}
-
-.info-text strong {
-  font-weight: 600;
-  color: #1e3a8a;
-}
-
-/* Toggle Mode */
-.toggle-mode {
-  margin-top: 1.5rem;
-  text-align: center;
+.toggle-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .toggle-text {
+  text-align: center;
   font-size: 0.95rem;
   color: #4a5568;
 }
 
-.toggle-btn {
-  background: none;
-  border: none;
+.toggle-link {
   color: #42b983;
   font-weight: 600;
   cursor: pointer;
-  padding: 0;
+  text-decoration: none;
   margin-left: 0.25rem;
   transition: color 0.3s ease;
 }
 
-.toggle-btn:hover {
+.toggle-link:hover {
   color: #369e73;
   text-decoration: underline;
 }
@@ -787,6 +702,10 @@ const handleLogin = async () => {
   .form-title {
     font-size: 1.75rem;
   }
+
+  .form-row.two-cols {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
@@ -798,7 +717,7 @@ const handleLogin = async () => {
     font-size: 1.25rem;
   }
 
-  .logo-icon .icon {
+  .logo-icon {
     width: 1.5rem;
     height: 1.5rem;
   }
@@ -809,7 +728,7 @@ const handleLogin = async () => {
   }
 
   .login-section {
-    padding: 5rem 1rem 2rem;
+    padding: 2rem 1rem;
   }
 
   .login-branding {

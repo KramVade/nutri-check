@@ -36,6 +36,45 @@
         </div>
       </header>
 
+      <!-- BMI Requests Notification -->
+      <div v-if="pendingRequests.length > 0" class="requests-banner">
+        <div class="banner-content">
+          <BellIcon class="banner-icon" />
+          <div class="banner-text">
+            <h3 class="banner-title">{{ pendingRequests.length }} Pending BMI Request{{ pendingRequests.length > 1 ? 's' : '' }}</h3>
+            <p class="banner-subtitle">Patients are waiting for BMI measurements</p>
+          </div>
+        </div>
+        <button @click="showRequests = !showRequests" class="banner-btn">
+          {{ showRequests ? 'Hide' : 'View' }} Requests
+        </button>
+      </div>
+
+      <!-- Requests List -->
+      <div v-if="showRequests && pendingRequests.length > 0" class="requests-section">
+        <h2 class="section-title">Pending BMI Requests</h2>
+        <div class="requests-list">
+          <div v-for="request in pendingRequests" :key="request.id" class="request-card">
+            <div class="request-info">
+              <UserCircleIcon class="request-icon" />
+              <div>
+                <h4 class="request-name">{{ request.patientName }}</h4>
+                <p class="request-time">{{ formatRequestTime(request.requestedAt) }}</p>
+              </div>
+            </div>
+            <div class="request-actions">
+              <button @click="handleRequest(request)" class="accept-btn">
+                <CheckCircleIcon class="btn-icon" />
+                Process
+              </button>
+              <button @click="dismissRequest(request.id)" class="dismiss-btn">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Stats Cards -->
       <div class="stats-grid">
         <div class="stat-card">
@@ -213,9 +252,8 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { auth, db } from '../firebase'
-import { signOut } from 'firebase/auth'
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
+import { db } from '../firebase'
+import { collection, getDocs, query, orderBy, where, doc, updateDoc, deleteDoc } from 'firebase/firestore'
 import {
   HeartIcon,
   UserCircleIcon,
@@ -228,7 +266,9 @@ import {
   ArrowRightIcon,
   CalculatorIcon,
   LightBulbIcon,
-  EyeIcon
+  EyeIcon,
+  BellIcon,
+  CheckCircleIcon
 } from '@heroicons/vue/24/solid'
 
 const router = useRouter()
@@ -236,26 +276,52 @@ const userEmail = ref('')
 const loading = ref(true)
 const recentPatients = ref([])
 const allPatients = ref([])
+const pendingRequests = ref([])
+const showRequests = ref(false)
 
 onMounted(async () => {
-  userEmail.value = auth.currentUser?.email || 'Guest'
+  // Get medical staff name from session storage
+  const medStaffName = sessionStorage.getItem('medStaffName')
+  userEmail.value = medStaffName || 'Medical Staff'
   await fetchPatients()
+  await fetchPendingRequests()
 })
 
 const fetchPatients = async () => {
   loading.value = true
   try {
-    const q = query(collection(db, 'patients'), orderBy('timestamp', 'desc'))
-    const querySnapshot = await getDocs(q)
-    allPatients.value = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }))
+    console.log('Fetching patients from patientAccounts collection...')
+    const querySnapshot = await getDocs(collection(db, 'patientAccounts'))
+    console.log('Found', querySnapshot.size, 'patient accounts')
+    
+    allPatients.value = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      console.log('Patient data:', data)
+      return {
+        id: doc.id,
+        name: data.name || 'Unknown',
+        age: data.age || 0,
+        gender: data.gender || 'N/A',
+        bmi: data.bmi || null,
+        category: data.category || 'N/A',
+        timestamp: data.createdAt || data.timestamp || new Date(),
+        ...data
+      }
+    })
+    
+    // Sort by timestamp (most recent first)
+    allPatients.value.sort((a, b) => {
+      const dateA = a.timestamp?.toDate ? a.timestamp.toDate() : new Date(a.timestamp)
+      const dateB = b.timestamp?.toDate ? b.timestamp.toDate() : new Date(b.timestamp)
+      return dateB - dateA
+    })
     
     // Get recent 5 patients
     recentPatients.value = allPatients.value.slice(0, 5)
+    console.log('Total patients loaded:', allPatients.value.length)
   } catch (error) {
     console.error('Error fetching patients:', error)
+    console.error('Error details:', error.message)
   } finally {
     loading.value = false
   }
@@ -317,14 +383,121 @@ const formatDate = (timestamp) => {
   })
 }
 
-const handleLogout = async () => {
+const fetchPendingRequests = async () => {
   try {
-    await signOut(auth)
-    localStorage.removeItem('patientInfo')
-    router.push('/login')
+    console.log('=== Fetching pending BMI requests ===')
+    
+    // Get all requests from the collection
+    const allRequestsSnapshot = await getDocs(collection(db, 'bmiRequests'))
+    console.log('Total requests in collection:', allRequestsSnapshot.size)
+    
+    // Filter for pending requests in JavaScript (no index needed)
+    const allRequests = []
+    allRequestsSnapshot.forEach(doc => {
+      const data = doc.data()
+      console.log('Request:', doc.id, data)
+      allRequests.push({
+        id: doc.id,
+        ...data
+      })
+    })
+    
+    // Filter and sort in JavaScript
+    pendingRequests.value = allRequests
+      .filter(req => req.status === 'pending')
+      .sort((a, b) => {
+        const dateA = a.requestedAt?.toDate ? a.requestedAt.toDate() : new Date(a.requestedAt)
+        const dateB = b.requestedAt?.toDate ? b.requestedAt.toDate() : new Date(b.requestedAt)
+        return dateB - dateA
+      })
+    
+    console.log('Pending requests found:', pendingRequests.value.length)
+    console.log('Pending requests data:', pendingRequests.value)
+    
+    // Auto-show requests if there are any
+    if (pendingRequests.value.length > 0) {
+      showRequests.value = true
+      console.log('✓ Showing requests banner')
+    } else {
+      console.log('⚠️ No pending requests to show')
+    }
   } catch (error) {
-    alert('Logout failed: ' + error.message)
+    console.error('❌ Error fetching requests:', error)
+    console.error('Error details:', error.message)
   }
+}
+
+const formatRequestTime = (timestamp) => {
+  if (!timestamp) return 'Just now'
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`
+  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`
+}
+
+const handleRequest = async (request) => {
+  try {
+    // Find the patient in the list
+    const patient = allPatients.value.find(p => p.id === request.patientId)
+    
+    if (!patient) {
+      alert('Patient not found')
+      return
+    }
+    
+    // Store patient info and navigate to BMI calculator
+    localStorage.setItem('patientInfo', JSON.stringify(patient))
+    
+    // Mark request as completed
+    await updateDoc(doc(db, 'bmiRequests', request.id), {
+      status: 'completed',
+      completedAt: new Date(),
+      completedBy: sessionStorage.getItem('medStaffName')
+    })
+    
+    // Remove from pending list
+    pendingRequests.value = pendingRequests.value.filter(r => r.id !== request.id)
+    
+    // Navigate to BMI calculator
+    router.push('/bmi-calculator')
+  } catch (error) {
+    console.error('Error handling request:', error)
+    alert('Failed to process request')
+  }
+}
+
+const dismissRequest = async (requestId) => {
+  if (!confirm('Are you sure you want to dismiss this request?')) {
+    return
+  }
+  
+  try {
+    await deleteDoc(doc(db, 'bmiRequests', requestId))
+    pendingRequests.value = pendingRequests.value.filter(r => r.id !== requestId)
+    console.log('Request dismissed')
+  } catch (error) {
+    console.error('Error dismissing request:', error)
+    alert('Failed to dismiss request')
+  }
+}
+
+const handleLogout = () => {
+  console.log('Logging out medical staff...')
+  
+  // Clear session storage
+  sessionStorage.removeItem('medStaffId')
+  sessionStorage.removeItem('medStaffName')
+  localStorage.removeItem('patientInfo')
+  
+  console.log('Session cleared, redirecting to login...')
+  router.push('/login')
 }
 </script>
 
@@ -945,4 +1118,221 @@ td {
     padding: 0.75rem 0.5rem;
   }
 }
+
+/* BMI Requests Banner */
+.requests-banner {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-left: 4px solid #3b82f6;
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.banner-icon {
+  width: 2rem;
+  height: 2rem;
+  color: #3b82f6;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.banner-text {
+  flex: 1;
+}
+
+.banner-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 0.25rem;
+}
+
+.banner-subtitle {
+  font-size: 0.875rem;
+  color: #3b82f6;
+}
+
+.banner-btn {
+  padding: 0.625rem 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.banner-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Requests Section */
+.requests-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.request-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.request-card:hover {
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  transform: translateX(4px);
+}
+
+.request-info {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.request-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.request-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 0.25rem;
+}
+
+.request-time {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.request-actions {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.accept-btn {
+  padding: 0.5rem 1rem;
+  background: #42b983;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.accept-btn:hover {
+  background: #369e73;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.3);
+}
+
+.accept-btn .btn-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.dismiss-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dismiss-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+  color: #374151;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .requests-banner {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .banner-btn {
+    width: 100%;
+  }
+
+  .request-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .request-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .accept-btn,
+  .dismiss-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 </style>

@@ -1,13 +1,16 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LandingPage from '../views/LandingPage.vue'
 import DashboardPage from '../views/DashboardPage.vue'
-import BmiCalculator from '../components/BmiCalculator.vue'
+import BmiCalculator from '../components/BmiCalculatorClean.vue'
 import HealthSuggestionPage from '../views/HealthSuggestionPage.vue'
 import PatientInfoPage from '../views/PatientInfoPage.vue'
 import PatientListPage from '../views/PatientListPage.vue'
 import PatientDetailPage from '../views/PatientDetailPage.vue'
 import LoginPage from '../views/LoginPage.vue'
-import { auth } from '../firebase'
+import PatientLoginPage from '../views/PatientLoginPage.vue'
+import PatientDashboardPage from '../views/PatientDashboardPage.vue'
+import PatientProfilePage from '../views/PatientProfilePage.vue'
+import PatientBMIHistory from '../views/PatientBMIHistory.vue'
 
 const routes = [
   {
@@ -19,6 +22,29 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: LoginPage
+  },
+  {
+    path: '/patient-login',
+    name: 'PatientLogin',
+    component: PatientLoginPage
+  },
+  {
+    path: '/patient-dashboard',
+    name: 'PatientDashboard',
+    component: PatientDashboardPage,
+    meta: { requiresPatientAuth: true }
+  },
+  {
+    path: '/patient-profile',
+    name: 'PatientProfile',
+    component: PatientProfilePage,
+    meta: { requiresPatientAuth: true }
+  },
+  {
+    path: '/patient-bmi-history',
+    name: 'PatientBMIHistory',
+    component: PatientBMIHistory,
+    meta: { requiresPatientAuth: true }
   },
   {
     path: '/dashboard',
@@ -66,13 +92,27 @@ const router = createRouter({
 // Navigation guard to check authentication
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const user = auth.currentUser
+  const requiresPatientAuth = to.matched.some(record => record.meta.requiresPatientAuth)
+  const medStaffId = sessionStorage.getItem('medStaffId')
+  const patientId = sessionStorage.getItem('patientId')
 
-  if (requiresAuth && !user) {
+  // Check medical professional auth
+  if (requiresAuth && !medStaffId) {
     next('/login')
-  } else if (to.path === '/login' && user) {
+  } 
+  // Check patient auth
+  else if (requiresPatientAuth && !patientId) {
+    next('/patient-login')
+  }
+  // Redirect logged-in medical professional from login page
+  else if (to.path === '/login' && medStaffId) {
     next('/dashboard')
-  } else {
+  }
+  // Redirect logged-in patient from patient login page
+  else if (to.path === '/patient-login' && patientId) {
+    next('/patient-dashboard')
+  }
+  else {
     next()
   }
 })

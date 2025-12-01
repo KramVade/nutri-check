@@ -9,10 +9,14 @@
           </div>
           <span class="logo-text">Nutri-Check</span>
         </div>
-        <button @click="$router.push('/login')" class="nav-login-btn">
-          <ArrowRightOnRectangleIcon class="btn-icon" />
-          Login
-        </button>
+        <div class="nav-login-buttons">
+          <button @click="$router.push('/patient-login')" class="nav-login-btn primary">
+            Patient Login
+          </button>
+          <button @click="$router.push('/login')" class="nav-login-btn secondary">
+            Staff
+          </button>
+        </div>
       </div>
     </nav>
 
@@ -22,12 +26,18 @@
         <div class="hero-content">
           <h1 class="hero-title">Your Health, Simplified</h1>
           <p class="hero-subtitle">
-            Calculate BMI instantly, track health metrics, and receive personalized wellness suggestions — all in one place.
+            Track your BMI, monitor your wellness journey, and get personalized health insights. For patients and healthcare professionals.
           </p>
-          <button @click="$router.push('/login')" class="cta-button">
-            Start Now
-            <ArrowRightIcon class="arrow-icon" />
-          </button>
+          <div class="cta-buttons">
+            <button @click="$router.push('/patient-login')" class="cta-button primary">
+              Patient Portal
+              <ArrowRightIcon class="arrow-icon" />
+            </button>
+            <button @click="$router.push('/login')" class="cta-button secondary">
+              Medical Staff Login
+              <ArrowRightIcon class="arrow-icon" />
+            </button>
+          </div>
         </div>
         <div class="hero-image">
           <div class="dashboard-illustration">
@@ -129,12 +139,12 @@
         <div class="about-content">
           <h2 class="section-title">About Nutri-Check</h2>
           <p class="about-text">
-            Nutri-Check is designed to simplify basic health assessments for clinics, schools, and community health centers. 
-            Our mission is to make health monitoring accessible, efficient, and actionable for healthcare providers and individuals alike.
+            Nutri-Check is designed to simplify patient health assessments for clinics, schools, and community health centers. 
+            Our mission is to empower healthcare providers with efficient tools for BMI tracking, patient management, and data-driven care.
           </p>
           <p class="about-text">
-            With seamless data management, instant calculations, and personalized insights, Nutri-Check empowers you to take 
-            control of your health journey with confidence.
+            With seamless patient record management, instant BMI calculations, and comprehensive health tracking, Nutri-Check helps 
+            medical professionals deliver better care and improve patient outcomes.
           </p>
         </div>
       </div>
@@ -144,10 +154,15 @@
     <section class="cta-footer">
       <div class="cta-container">
         <h2 class="cta-title">Ready to Get Started?</h2>
-        <p class="cta-subtitle">Join healthcare providers using Nutri-Check to improve patient care</p>
-        <button @click="$router.push('/login')" class="cta-button-large">
-          Try Nutri-Check Now
-        </button>
+        <p class="cta-subtitle">Join thousands tracking their health with Nutri-Check</p>
+        <div class="cta-footer-buttons">
+          <button @click="$router.push('/patient-login')" class="cta-button-large primary">
+            Patient Portal
+          </button>
+          <button @click="$router.push('/login')" class="cta-button-large secondary">
+            Medical Staff
+          </button>
+        </div>
         <div class="footer-links">
           <a @click="$router.push('/login')" class="footer-link">Login</a>
           <span class="separator">•</span>
@@ -235,30 +250,42 @@ import {
   color: #42b983;
 }
 
+.nav-login-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
 .nav-login-btn {
-  padding: 0.625rem 1.5rem;
-  background: #42b983;
-  color: white;
-  border: none;
+  padding: 0.625rem 1.25rem;
   border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  white-space: nowrap;
 }
 
-.btn-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+.nav-login-btn.primary {
+  background: #42b983;
+  color: white;
+  border: none;
 }
 
-.nav-login-btn:hover {
+.nav-login-btn.primary:hover {
   background: #369e73;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+}
+
+.nav-login-btn.secondary {
+  background: transparent;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+}
+
+.nav-login-btn.secondary:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
 }
 
 /* Hero Section */
@@ -314,10 +341,14 @@ import {
   text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
+.cta-buttons {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .cta-button {
   padding: 1rem 2.5rem;
-  background: linear-gradient(135deg, #42b983 0%, #369e73 100%);
-  color: white;
   border: none;
   border-radius: 12px;
   font-size: 1.125rem;
@@ -327,13 +358,32 @@ import {
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
+}
+
+.cta-button.primary {
+  background: linear-gradient(135deg, #42b983 0%, #369e73 100%);
+  color: white;
   box-shadow: 0 6px 20px rgba(66, 185, 131, 0.5), 0 0 0 3px rgba(255, 255, 255, 0.8);
 }
 
-.cta-button:hover {
+.cta-button.primary:hover {
   background: linear-gradient(135deg, #369e73 0%, #2d8a5f 100%);
   transform: translateY(-3px);
   box-shadow: 0 8px 28px rgba(66, 185, 131, 0.6), 0 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.cta-button.secondary {
+  background: white;
+  color: #42b983;
+  border: 2px solid #42b983;
+  box-shadow: 0 4px 14px rgba(66, 185, 131, 0.2);
+}
+
+.cta-button.secondary:hover {
+  background: #42b983;
+  color: white;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(66, 185, 131, 0.4);
 }
 
 .arrow-icon {
@@ -366,15 +416,16 @@ import {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 250px;
-  height: 250px;
+  width: 240px;
+  height: 240px;
   background: white;
   border-radius: 50%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 0 8px rgba(255, 255, 255, 0.5);
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12), 0 0 0 6px rgba(255, 255, 255, 0.5);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  z-index: 2;
 }
 
 .meter-arc {
@@ -647,22 +698,46 @@ import {
   opacity: 0.95;
 }
 
+.cta-footer-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 .cta-button-large {
   padding: 1.25rem 3rem;
-  background: white;
-  color: #42b983;
   border: none;
   border-radius: 12px;
   font-size: 1.25rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+.cta-button-large.primary {
+  background: white;
+  color: #42b983;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
-.cta-button-large:hover {
+.cta-button-large.primary:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 30px rgba(0, 0, 0, 0.3);
+}
+
+.cta-button-large.secondary {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.cta-button-large.secondary:hover {
+  background: white;
+  color: #42b983;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.2);
 }
 
 .footer-links {
