@@ -82,16 +82,56 @@
           </button>
         </div>
 
+        <!-- Sensor Mode Toggle -->
+        <div class="mode-toggle">
+          <button 
+            @click="sensorMode = false" 
+            :class="['mode-btn', { active: !sensorMode }]"
+          >
+            Manual Entry
+          </button>
+          <button 
+            @click="sensorMode = true" 
+            :class="['mode-btn', { active: sensorMode }]"
+          >
+            Arduino Sensors
+          </button>
+        </div>
+
+        <!-- Arduino Sensor Config (shown when sensor mode is active) -->
+        <div v-if="sensorMode" class="sensor-config">
+          <div class="config-row">
+            <div class="config-group">
+              <label class="config-label">Weight Sensor IP</label>
+              <input v-model="weightSensorIP" type="text" class="config-input" placeholder="192.168.1.100" />
+            </div>
+            <div class="config-group">
+              <label class="config-label">Height Sensor IP</label>
+              <input v-model="heightSensorIP" type="text" class="config-input" placeholder="192.168.1.101" />
+            </div>
+          </div>
+        </div>
+
         <!-- Input Form -->
         <div class="form-section">
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">Weight (kg)</label>
-              <input v-model.number="weight" type="number" step="0.1" class="form-input" placeholder="0.0" />
+              <div class="input-with-btn">
+                <input v-model.number="weight" type="number" step="0.1" class="form-input" placeholder="0.0" :disabled="sensorMode && readingWeight" />
+                <button v-if="sensorMode" @click="readWeight" class="sensor-btn" :disabled="readingWeight">
+                  {{ readingWeight ? 'Reading...' : 'Read Sensor' }}
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Height (cm)</label>
-              <input v-model.number="height" type="number" step="0.1" class="form-input" placeholder="0.0" />
+              <div class="input-with-btn">
+                <input v-model.number="height" type="number" step="0.1" class="form-input" placeholder="0.0" :disabled="sensorMode && readingHeight" />
+                <button v-if="sensorMode" @click="readHeight" class="sensor-btn" :disabled="readingHeight">
+                  {{ readingHeight ? 'Reading...' : 'Read Sensor' }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -148,6 +188,13 @@ const bmi = ref(null)
 const category = ref('')
 const calculating = ref(false)
 
+// Arduino sensor mode
+const sensorMode = ref(false)
+const weightSensorIP = ref('192.168.1.100')
+const heightSensorIP = ref('192.168.1.101')
+const readingWeight = ref(false)
+const readingHeight = ref(false)
+
 const filteredPatients = computed(() => {
   if (!searchQuery.value) return patients.value
   const q = searchQuery.value.toLowerCase()
@@ -194,6 +241,48 @@ const clearSelection = () => {
   height.value = null
   bmi.value = null
   category.value = ''
+}
+
+// Read weight from Arduino sensor
+const readWeight = async () => {
+  if (!weightSensorIP.value) {
+    alert('Please enter weight sensor IP address')
+    return
+  }
+
+  readingWeight.value = true
+  try {
+    const response = await fetch(`http://${weightSensorIP.value}:8080/weight`)
+    const data = await response.json()
+    weight.value = parseFloat(data.weight)
+    console.log('Weight read from sensor:', weight.value)
+  } catch (error) {
+    console.error('Error reading weight sensor:', error)
+    alert('Failed to read weight sensor. Make sure the Arduino is connected and the IP is correct.')
+  } finally {
+    readingWeight.value = false
+  }
+}
+
+// Read height from Arduino sensor
+const readHeight = async () => {
+  if (!heightSensorIP.value) {
+    alert('Please enter height sensor IP address')
+    return
+  }
+
+  readingHeight.value = true
+  try {
+    const response = await fetch(`http://${heightSensorIP.value}:8081/height`)
+    const data = await response.json()
+    height.value = parseFloat(data.height)
+    console.log('Height read from sensor:', height.value)
+  } catch (error) {
+    console.error('Error reading height sensor:', error)
+    alert('Failed to read height sensor. Make sure the Arduino is connected and the IP is correct.')
+  } finally {
+    readingHeight.value = false
+  }
 }
 
 const calculateBMI = async () => {
@@ -492,6 +581,75 @@ onMounted(fetchPatients)
   cursor: pointer;
 }
 
+/* Mode Toggle */
+.mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.25rem;
+  background: #f7fafc;
+  border-radius: 8px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 0.75rem;
+  background: transparent;
+  color: #6b7280;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn.active {
+  background: white;
+  color: #42b983;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Sensor Config */
+.sensor-config {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #eff6ff;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.config-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.config-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.config-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e40af;
+}
+
+.config-input {
+  padding: 0.625rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  background: white;
+}
+
+.config-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
 /* Form */
 .form-section {
   margin-bottom: 2rem;
@@ -516,7 +674,13 @@ onMounted(fetchPatients)
   color: #2d3748;
 }
 
+.input-with-btn {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .form-input {
+  flex: 1;
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -526,6 +690,33 @@ onMounted(fetchPatients)
 .form-input:focus {
   outline: none;
   border-color: #42b983;
+}
+
+.form-input:disabled {
+  background: #f7fafc;
+  color: #9ca3af;
+}
+
+.sensor-btn {
+  padding: 0.75rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.sensor-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.sensor-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .calc-btn {
@@ -647,6 +838,18 @@ onMounted(fetchPatients)
 
   .form-row {
     grid-template-columns: 1fr;
+  }
+
+  .config-row {
+    grid-template-columns: 1fr;
+  }
+
+  .input-with-btn {
+    flex-direction: column;
+  }
+
+  .sensor-btn {
+    width: 100%;
   }
 
   .selected-patient {
