@@ -106,8 +106,8 @@ app.get('/status', (req, res) => {
   });
 });
 
-// Start HTTP server
-app.listen(HTTP_PORT, () => {
+// Start HTTP server (listen on all network interfaces)
+app.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log('=================================');
   console.log('Height Sensor Bridge Started');
   console.log('=================================');
@@ -116,5 +116,6 @@ app.listen(HTTP_PORT, () => {
   console.log(`Trigger measurement: http://localhost:${HTTP_PORT}/measure`);
   console.log(`Status check: http://localhost:${HTTP_PORT}/status`);
   console.log(`Arduino Port: ${COM_PORT}`);
+  console.log('Network: Accessible from other devices on your network');
   console.log('=================================');
 });

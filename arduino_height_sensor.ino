@@ -1,23 +1,3 @@
-/*
- * Arduino Height Sensor for Nutri-Check
- * 
- * This sketch reads height data from an ultrasonic sensor (HC-SR04)
- * and outputs it via Serial communication
- * 
- * Hardware Required:
- * - Arduino Uno/Mega
- * - HC-SR04 Ultrasonic Sensor
- * 
- * Setup:
- * - Mount the sensor at a fixed height (baseHeight = 167cm from ground)
- * - Sensor measures distance to person's head
- * - Height = baseHeight - measured_distance
- * 
- * Usage:
- * - Send 'a' via Serial Monitor to start 5-second measurement
- * - Height values are printed to Serial every 500ms
- */
-
 // Pin assignments
 const int trigPin = 9;
 const int echoPin = 10;
@@ -27,9 +7,6 @@ long duration;
 float distance;  // distance in cm
 const float baseHeight = 167.0;  // Base height in cm (sensor's distance from the ground)
 
-unsigned long startTime;  // Variable to store the start time
-bool isMeasuring = false; // Flag to indicate if measurement is active
-
 void setup() {
   // Set pins
   pinMode(trigPin, OUTPUT);
@@ -38,59 +15,36 @@ void setup() {
   // Start serial communication
   Serial.begin(9600);
   
-  // Print instructions to the Serial Monitor
-  Serial.println("Press 'a' to start measuring.");
+  delay(2000);  // Give time for serial to initialize
 }
 
 void loop() {
-  // Check for user input from the Serial Monitor
-  if (Serial.available() > 0) {
-    char input = Serial.read();  // Read the input character
-    
-    if (input == 'a' && !isMeasuring) {
-      isMeasuring = true;         // Set the flag to start measuring
-      startTime = millis();       // Record the start time
-    }
+  // Clear the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  
+  // Trigger the sensor by setting the trigPin HIGH for 10 microseconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Read the echoPin and calculate the duration
+  duration = pulseIn(echoPin, HIGH);
+  
+  // Calculate the distance (speed of sound = 34300 cm/s)
+  distance = duration * 0.034 / 2;  // distance in cm
+  
+  // Calculate the height as the difference from base height
+  float height = baseHeight - distance;
+  
+  // If no object is detected (distance >= baseHeight), set height to 0
+  if (distance >= baseHeight || distance <= 0) {
+    height = 0;
   }
   
-  // If measuring, perform measurements
-  if (isMeasuring) {
-    // Check if 5 seconds have passed
-    if (millis() - startTime > 5000) {
-      isMeasuring = false;  // Reset the measuring flag
-      return;               // Skip the rest of the loop
-    }
-    
-    // Clear the trigPin
-    digitalWrite(trigPin, LOW);
-    delayMicroseconds(2);
-    
-    // Trigger the sensor by setting the trigPin HIGH for 10 microseconds
-    digitalWrite(trigPin, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(trigPin, LOW);
-    
-    // Read the echoPin and calculate the duration
-    duration = pulseIn(echoPin, HIGH);
-    
-    // Calculate the distance (speed of sound = 34300 cm/s)
-    distance = duration * 0.034 / 2;  // distance in cm
-    
-    // Calculate the height as the difference from base height
-    float height = baseHeight - distance;
-    
-    // If no object is detected (distance >= baseHeight), set height to 0
-    if (distance >= baseHeight) {
-      height = 0;
-    }
-    
-    // Convert height to meters
-    float heightInMeters = height;
-    
-    // Print only the numerical height value in meters
-    Serial.println(heightInMeters, 2);  // Print with 2 decimal places
-    
-    // Wait before the next measurement
-    delay(500);
-  }
+  // Print only the numerical height value in cm
+  Serial.println(height, 2);  // Print with 2 decimal places
+  
+  // Wait before the next measurement
+  delay(500);
 }

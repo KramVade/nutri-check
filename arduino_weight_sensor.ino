@@ -1,155 +1,46 @@
-/*
- * Arduino Weight Sensor for Nutri-Check
- * 
- * This sketch reads weight data from a load cell sensor (HX711)
- * and sends it to the web app via HTTP server
- * 
- * Hardware Required:
- * - Arduino (Uno, Mega, or ESP8266/ESP32 for WiFi)
- * - HX711 Load Cell Amplifier
- * - Load Cell (weight sensor)
- * - Ethernet Shield or WiFi module
- * 
- * Libraries Required:
- * - HX711 library by Bogdan Necula
- * - ESP8266WiFi or WiFi library (for WiFi boards)
- * - ESP8266WebServer or WebServer library
- */
-
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
 #include <HX711.h>
 
-// WiFi credentials
-const char* ssid = "YOUR_WIFI_SSID";
-const char* password = "YOUR_WIFI_PASSWORD";
+// Define pins for HX711
+const int HX711_dout = 6; // DOUT pin connected to GPIO6
+const int HX711_sck = 5;  // SCK pin connected to GPIO5
 
-// HX711 pins
-const int LOADCELL_DOUT_PIN = D2;  // Data pin
-const int LOADCELL_SCK_PIN = D3;   // Clock pin
+HX711 scale; // Create an instance of the HX711 class
 
-// Calibration factor (adjust based on your load cell)
-const float CALIBRATION_FACTOR = -7050.0;
-
-HX711 scale;
-ESP8266WebServer server(8080);  // HTTP server on port 8080
-
-float currentWeight = 0.0;
+float scaleFactor = 0.00004878;  // Scale factor (adjust based on calibration)
+long zeroOffset = 0;             // Zero offset (updated during tare)
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("Weight Sensor Starting...");
+  Serial.begin(9600); // Initialize Serial Monitor at 9600 baud
   
-  // Initialize load cell
-  scale.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
-  scale.set_scale(CALIBRATION_FACTOR);
-  scale.tare();  // Reset scale to 0
+  // Initialize the HX711
+  scale.begin(HX711_dout, HX711_sck);
   
-  Serial.println("Load cell initialized");
-  
-  // Connect to WiFi
-  WiFi.begin(ssid, password);
-  Serial.print("Connecting to WiFi");
-  
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if (!scale.is_ready()) {
+    while (true); // Stop execution if HX711 is not ready
   }
   
-  Serial.println();
-  Serial.println("WiFi connected!");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  Serial.print("Access weight sensor at: http://");
-  Serial.print(WiFi.localIP());
-  Serial.println(":8080/weight");
+  // Tare the scale to set the base weight to 0
+  scale.tare(); // Resets the scale to 0
+  delay(1000);  // Allow time for the tare to settle
   
-  // Setup HTTP routes
-  server.on("/weight", HTTP_GET, handleWeightRequest);
-  server.on("/tare", HTTP_GET, handleTare);
-  server.on("/calibrate", HTTP_GET, handleCalibrate);
+  // Get the current reading with no weight (zero point)
+  zeroOffset = scale.get_units(10);  // Average 10 readings
   
-  // Enable CORS
-  server.enableCORS(true);
-  
-  server.begin();
-  Serial.println("HTTP server started");
+  delay(2000);  // Give time for serial to initialize
 }
 
 void loop() {
-  server.handleClient();
-  
-  // Read weight continuously
   if (scale.is_ready()) {
-    currentWeight = scale.get_units(10);  // Average of 10 readings
+    long rawData = scale.get_units(10);  // Average 10 readings
+    float weightInKg = (rawData - zeroOffset) * scaleFactor;  // Convert to kg
     
-    // Ensure weight is not negative
-    if (currentWeight < 0) {
-      currentWeight = 0;
+    // Ensure non-negative weight
+    if (weightInKg < 0) {
+      weightInKg = 0;
     }
     
-    // Print to serial for debugging
-    Serial.print("Weight: ");
-    Serial.print(currentWeight, 2);
-    Serial.println(" kg");
+    Serial.println(weightInKg, 2);  // Print with 2 decimal places
   }
   
-  delay(500);  // Update every 500ms
-}
-
-// Handle weight request
-void handleWeightRequest() {
-  // Add CORS headers
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  server.sendHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  server.sendHeader("Access-Control-Allow-Headers", "Content-Type");
-  
-  // Send JSON response
-  String json = "{";
-  json += "\"weight\":" + String(currentWeight, 2) + ",";
-  json += "\"unit\":\"kg\",";
-  json += "\"timestamp\":" + String(millis());
-  json += "}";
-  
-  server.send(200, "application/json", json);
-  
-  Serial.println("Weight data sent: " + String(currentWeight, 2) + " kg");
-}
-
-// Handle tare (reset to zero)
-void handleTare() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  
-  scale.tare();
-  currentWeight = 0;
-  
-  String json = "{\"status\":\"success\",\"message\":\"Scale tared\"}";
-  server.send(200, "application/json", json);
-  
-  Serial.println("Scale tared");
-}
-
-// Handle calibration
-void handleCalibrate() {
-  server.sendHeader("Access-Control-Allow-Origin", "*");
-  
-  // Get known weight from query parameter
-  if (server.hasArg("weight")) {
-    float knownWeight = server.arg("weight").toFloat();
-    
-    scale.tare();
-    delay(1000);
-    
-    float reading = scale.get_units(10);
-    float newCalibration = reading / knownWeight;
-    scale.set_scale(newCalibration);
-    
-    String json = "{\"status\":\"success\",\"calibration\":" + String(newCalibration) + "}";
-    server.send(200, "application/json", json);
-    
-    Serial.println("Calibrated with known weight: " + String(knownWeight) + " kg");
-  } else {
-    String json = "{\"status\":\"error\",\"message\":\"Missing weight parameter\"}";
-    server.send(400, "application/json", json);
-  }
+  delay(500); // Delay between readings
 }
