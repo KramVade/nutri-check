@@ -6,7 +6,7 @@
       <div class="nav-container">
         <div class="logo">
           <div class="logo-icon">
-            <HeartIcon class="icon" />
+            <img src="/logo.png" alt="Nutri-Check Logo" class="icon" />
           </div>
           <span class="logo-text">Nutri-Check</span>
         </div>
@@ -238,6 +238,7 @@ import {
   font-size: 1.5rem;
   font-weight: 700;
   color: #2d3748;
+  cursor: pointer;
 }
 
 .logo-icon {
@@ -246,9 +247,20 @@ import {
 }
 
 .logo-icon .icon {
-  width: 2rem;
-  height: 2rem;
-  color: #42b983;
+  height: 4.5rem;
+  width: auto;
+  border-radius: 8px;
+  padding: 0.4rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+  border: 2px solid #42b983;
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-icon .icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .nav-login-buttons {
@@ -431,45 +443,41 @@ import {
 
 .meter-arc {
   position: absolute;
-  top: 20%;
-  width: 180px;
-  height: 90px;
-  border: 15px solid #e2e8f0;
-  border-bottom: none;
-  border-radius: 180px 180px 0 0;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from -90deg,
+    #42b983 0deg,
+    #42b983 216deg,
+    #e2e8f0 216deg,
+    #e2e8f0 360deg
+  );
+  animation: rotateGradient 3s ease-in-out infinite;
 }
 
 .meter-arc::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 60%;
-  height: 100%;
-  border: 15px solid #42b983;
-  border-bottom: none;
-  border-right: none;
-  border-radius: 180px 0 0 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 160px;
+  background: white;
+  border-radius: 50%;
 }
 
 .meter-needle {
-  position: absolute;
-  top: 45%;
-  width: 4px;
-  height: 80px;
-  background: #2d3748;
-  border-radius: 2px;
-  transform-origin: bottom center;
-  transform: rotate(-30deg);
-  animation: needleSwing 3s ease-in-out infinite;
+  display: none;
 }
 
 .meter-label {
-  position: absolute;
-  bottom: 30%;
+  position: relative;
   font-size: 1.5rem;
   font-weight: 700;
   color: #42b983;
+  z-index: 1;
 }
 
 .health-cards {
@@ -808,12 +816,24 @@ import {
   }
 }
 
-@keyframes needleSwing {
+@keyframes rotateGradient {
   0%, 100% {
-    transform: rotate(-30deg);
+    background: conic-gradient(
+      from -90deg,
+      #42b983 0deg,
+      #42b983 216deg,
+      #e2e8f0 216deg,
+      #e2e8f0 360deg
+    );
   }
   50% {
-    transform: rotate(30deg);
+    background: conic-gradient(
+      from -90deg,
+      #42b983 0deg,
+      #42b983 252deg,
+      #e2e8f0 252deg,
+      #e2e8f0 360deg
+    );
   }
 }
 

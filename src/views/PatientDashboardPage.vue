@@ -4,7 +4,7 @@
     <nav class="dashboard-nav">
       <div class="nav-content">
         <div class="logo">
-          <HeartIcon class="logo-icon" />
+          <img src="/logo.png" alt="Nutri-Check Logo" class="logo-icon" />
           <span class="logo-text">Nutri-Check</span>
         </div>
         <div class="nav-actions">
@@ -25,7 +25,7 @@
       <!-- Welcome Header -->
       <header class="dashboard-header">
         <div class="welcome-section">
-          <h1 class="welcome-title">Welcome back, {{ patientName }}! 👋</h1>
+          <h1 class="welcome-title">Welcome back, {{ patientName }}!</h1>
           <p class="welcome-subtitle">Track your health journey and monitor your BMI progress</p>
         </div>
       </header>
@@ -35,33 +35,33 @@
         <div class="stat-card primary bmi-gauge-card">
           <div class="bmi-gauge-container">
             <svg class="bmi-gauge" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
-              <!-- Background arc segments -->
+              <!-- Background arc segments with lighter colors -->
               <path d="M 20 100 A 80 80 0 0 1 60 30" 
                     fill="none" 
-                    stroke="#3b82f6" 
-                    stroke-width="20" 
+                    stroke="#93c5fd" 
+                    stroke-width="16" 
                     stroke-linecap="round"
                     class="gauge-segment underweight"/>
               <path d="M 60 30 A 80 80 0 0 1 100 20" 
                     fill="none" 
-                    stroke="#10b981" 
-                    stroke-width="20" 
+                    stroke="#86efac" 
+                    stroke-width="16" 
                     stroke-linecap="round"
                     class="gauge-segment normal"/>
               <path d="M 100 20 A 80 80 0 0 1 140 30" 
                     fill="none" 
-                    stroke="#f59e0b" 
-                    stroke-width="20" 
+                    stroke="#fcd34d" 
+                    stroke-width="16" 
                     stroke-linecap="round"
                     class="gauge-segment overweight"/>
               <path d="M 140 30 A 80 80 0 0 1 180 100" 
                     fill="none" 
-                    stroke="#ef4444" 
-                    stroke-width="20" 
+                    stroke="#fca5a5" 
+                    stroke-width="16" 
                     stroke-linecap="round"
                     class="gauge-segment obese"/>
               
-              <!-- Needle -->
+              <!-- Shorter needle (reduced from 80 to 55 length) -->
               <line :x1="100" 
                     :y1="100" 
                     :x2="needleX" 
@@ -152,12 +152,65 @@
             <p class="action-description">View your BMI trends over time</p>
           </div>
 
-          <div class="action-card" @click="$router.push('/health-suggestion')">
+          <div class="action-card" @click="scrollToHealthTips">
             <div class="action-icon-wrapper">
               <LightBulbIcon class="action-icon" />
             </div>
-            <h3 class="action-title">Health Tips</h3>
-            <p class="action-description">Get personalized health suggestions</p>
+            <h3 class="action-title">Get Help Tips</h3>
+            <p class="action-description">View personalized health recommendations</p>
+            <span v-if="hasNewRecommendations" class="notification-badge">New</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health Tips Section -->
+      <div ref="healthTipsSection" class="health-tips-section" v-if="recommendations.length > 0">
+        <div class="section-header">
+          <h2 class="section-title">
+            <LightBulbIcon class="section-icon" />
+            Get Help Tips
+          </h2>
+        </div>
+
+        <div class="tips-grid">
+          <div v-for="rec in recommendations" :key="rec.id" class="tip-card" :class="getCategoryClass(rec.category)">
+            <div class="tip-header">
+              <div class="tip-info">
+                <h3 class="tip-title">{{ rec.category }} Recommendations</h3>
+                <p class="tip-meta">
+                  <span>From: {{ rec.sentBy }}</span>
+                  <span class="tip-date">{{ formatDate(rec.sentAt) }}</span>
+                </p>
+              </div>
+              <span class="tip-bmi">BMI: {{ rec.bmi ? rec.bmi.toFixed(1) : 'N/A' }}</span>
+            </div>
+
+            <div class="tip-content">
+              <div class="tip-section">
+                <h4 class="tip-section-title">
+                  <HeartIcon class="tip-section-icon" />
+                  Dietary Suggestions
+                </h4>
+                <ul class="tip-list">
+                  <li v-for="(item, index) in rec.recommendations.dietary" :key="index">{{ item }}</li>
+                </ul>
+              </div>
+
+              <div class="tip-section">
+                <h4 class="tip-section-title">
+                  <FireIcon class="tip-section-icon" />
+                  Lifestyle Recommendations
+                </h4>
+                <ul class="tip-list">
+                  <li v-for="(item, index) in rec.recommendations.lifestyle" :key="index">{{ item }}</li>
+                </ul>
+              </div>
+            </div>
+
+            <button @click="markAsRead(rec.id)" v-if="!rec.read" class="mark-read-btn">
+              <CheckCircleIcon class="btn-icon" />
+              Mark as Read
+            </button>
           </div>
         </div>
       </div>
@@ -222,7 +275,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { collection, query, where, orderBy, getDocs, addDoc, doc, getDoc } from 'firebase/firestore'
+import { collection, query, where, orderBy, getDocs, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore'
 import {
   HeartIcon,
   UserCircleIcon,
@@ -234,7 +287,9 @@ import {
   CalculatorIcon,
   ClockIcon,
   LightBulbIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  FireIcon,
+  CheckCircleIcon
 } from '@heroicons/vue/24/solid'
 
 const router = useRouter()
@@ -242,6 +297,9 @@ const patientName = ref('')
 const loading = ref(true)
 const recentRecords = ref([])
 const allRecords = ref([])
+const recommendations = ref([])
+const hasNewRecommendations = ref(false)
+const healthTipsSection = ref(null)
 
 onMounted(async () => {
   // Check if patient is logged in
@@ -253,6 +311,7 @@ onMounted(async () => {
 
   patientName.value = sessionStorage.getItem('patientName') || 'Patient'
   await fetchBMIRecords()
+  await fetchRecommendations()
 })
 
 const fetchBMIRecords = async () => {
@@ -371,6 +430,47 @@ const daysSinceLastCheck = computed(() => {
   return `${Math.floor(diffDays / 30)} months ago`
 })
 
+const needleX = computed(() => {
+  if (allRecords.value.length === 0) return 100
+  const bmi = allRecords.value[0].bmi
+  if (!bmi) return 100
+  
+  // Map BMI to angle (0-180 degrees)
+  let angle
+  if (bmi < 18.5) {
+    angle = (bmi / 18.5) * 45
+  } else if (bmi < 25) {
+    angle = 45 + ((bmi - 18.5) / 6.5) * 45
+  } else if (bmi < 30) {
+    angle = 90 + ((bmi - 25) / 5) * 45
+  } else {
+    angle = 135 + Math.min((bmi - 30) / 10, 1) * 45
+  }
+  
+  const radians = (angle * Math.PI) / 180
+  return 100 + 55 * Math.cos(Math.PI - radians) // Shortened needle length
+})
+
+const needleY = computed(() => {
+  if (allRecords.value.length === 0) return 100
+  const bmi = allRecords.value[0].bmi
+  if (!bmi) return 100
+  
+  let angle
+  if (bmi < 18.5) {
+    angle = (bmi / 18.5) * 45
+  } else if (bmi < 25) {
+    angle = 45 + ((bmi - 18.5) / 6.5) * 45
+  } else if (bmi < 30) {
+    angle = 90 + ((bmi - 25) / 5) * 45
+  } else {
+    angle = 135 + Math.min((bmi - 30) / 10, 1) * 45
+  }
+  
+  const radians = (angle * Math.PI) / 180
+  return 100 - 55 * Math.sin(Math.PI - radians) // Shortened needle length
+})
+
 const getCategoryClass = (category) => {
   const classes = {
     'Normal weight': 'healthy',
@@ -416,6 +516,79 @@ const requestBMICheck = async () => {
   } catch (error) {
     console.error('Error sending BMI request:', error)
     alert('Failed to send request. Please try again.')
+  }
+}
+
+const fetchRecommendations = async () => {
+  try {
+    const patientId = sessionStorage.getItem('patientId')
+    if (!patientId) return
+
+    console.log('Fetching recommendations for patient:', patientId)
+
+    // Get all recommendations and filter in JavaScript
+    const allRecsSnapshot = await getDocs(collection(db, 'healthRecommendations'))
+    
+    const patientRecs = []
+    allRecsSnapshot.forEach(doc => {
+      const data = doc.data()
+      if (data.patientId === patientId) {
+        patientRecs.push({
+          id: doc.id,
+          ...data
+        })
+      }
+    })
+
+    // Sort by date (most recent first)
+    patientRecs.sort((a, b) => {
+      const dateA = a.sentAt?.toDate ? a.sentAt.toDate() : new Date(a.sentAt)
+      const dateB = b.sentAt?.toDate ? b.sentAt.toDate() : new Date(b.sentAt)
+      return dateB - dateA
+    })
+
+    recommendations.value = patientRecs
+    hasNewRecommendations.value = patientRecs.some(rec => !rec.read)
+
+    console.log('Recommendations loaded:', recommendations.value.length)
+  } catch (error) {
+    console.error('Error fetching recommendations:', error)
+  }
+}
+
+const markAsRead = async (recId) => {
+  try {
+    const recRef = doc(db, 'healthRecommendations', recId)
+    await updateDoc(recRef, {
+      read: true,
+      readAt: new Date()
+    })
+
+    // Update local state
+    const rec = recommendations.value.find(r => r.id === recId)
+    if (rec) {
+      rec.read = true
+    }
+
+    // Update badge
+    hasNewRecommendations.value = recommendations.value.some(rec => !rec.read)
+
+    // Update patient document
+    const patientId = sessionStorage.getItem('patientId')
+    if (patientId) {
+      const patientRef = doc(db, 'patientAccounts', patientId)
+      await updateDoc(patientRef, {
+        hasNewRecommendations: hasNewRecommendations.value
+      })
+    }
+  } catch (error) {
+    console.error('Error marking as read:', error)
+  }
+}
+
+const scrollToHealthTips = () => {
+  if (healthTipsSection.value) {
+    healthTipsSection.value.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 }
 
@@ -466,9 +639,20 @@ const handleLogout = () => {
 }
 
 .logo-icon {
-  width: 2rem;
-  height: 2rem;
-  color: #42b983;
+  height: 3.5rem;
+  width: auto;
+  border-radius: 8px;
+  padding: 0.4rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+  border: 2px solid #42b983;
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .logo-text {
@@ -746,6 +930,178 @@ const handleLogout = () => {
   line-height: 1.5;
 }
 
+.notification-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.25rem 0.625rem;
+  background: #ef4444;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Health Tips Section */
+.health-tips-section {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 3rem;
+}
+
+.section-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: #42b983;
+}
+
+.tips-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.tip-card {
+  background: #f7fafc;
+  border-radius: 12px;
+  padding: 2rem;
+  border-left: 4px solid;
+  transition: all 0.3s ease;
+}
+
+.tip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tip-card.healthy {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #ecfdf5 100%);
+}
+
+.tip-card.warning {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%);
+}
+
+.tip-card.danger {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #fef2f2 100%);
+}
+
+.tip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+.tip-info {
+  flex: 1;
+}
+
+.tip-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+}
+
+.tip-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.tip-date {
+  font-weight: 500;
+}
+
+.tip-bmi {
+  padding: 0.5rem 1rem;
+  background: rgba(66, 185, 131, 0.1);
+  color: #42b983;
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+.tip-content {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tip-section {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 8px;
+}
+
+.tip-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 0.875rem;
+}
+
+.tip-section-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #42b983;
+}
+
+.tip-list {
+  list-style-position: inside;
+  padding-left: 0.5rem;
+}
+
+.tip-list li {
+  font-size: 0.95rem;
+  color: #4a5568;
+  line-height: 1.8;
+  margin-bottom: 0.5rem;
+  padding-left: 0.5rem;
+}
+
+.mark-read-btn {
+  padding: 0.75rem 1.5rem;
+  background: #42b983;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.mark-read-btn:hover {
+  background: #369e73;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
+}
+
 /* Recent Records */
 .recent-records-section {
   background: white;
@@ -939,6 +1295,110 @@ const handleLogout = () => {
   font-size: 0.875rem;
   color: #2d3748;
   font-weight: 600;
+}
+
+/* BMI Gauge Styles */
+.bmi-gauge-card {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+}
+
+.bmi-gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.bmi-gauge {
+  width: 100%;
+  max-width: 280px;
+  height: auto;
+}
+
+.gauge-segment {
+  transition: all 0.3s ease;
+  opacity: 0.9;
+}
+
+.gauge-segment:hover {
+  opacity: 1;
+  filter: brightness(1.1);
+}
+
+.gauge-needle {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+  transition: all 0.5s ease;
+}
+
+.gauge-center {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.bmi-gauge-info {
+  text-align: center;
+}
+
+.bmi-value-display {
+  font-size: 3rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.bmi-category-display {
+  font-size: 1.125rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.2);
+  display: inline-block;
+}
+
+.bmi-gauge-legend {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-color.underweight {
+  background: #93c5fd;
+}
+
+.legend-color.normal {
+  background: #86efac;
+}
+
+.legend-color.overweight {
+  background: #fcd34d;
+}
+
+.legend-color.obese {
+  background: #fca5a5;
+}
+
+.legend-text {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
 }
 
 /* Responsive Design */

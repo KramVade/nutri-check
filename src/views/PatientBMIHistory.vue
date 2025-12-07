@@ -4,7 +4,7 @@
     <nav class="nav-bar">
       <div class="nav-content">
         <div class="logo" @click="$router.push('/patient-dashboard')">
-          <HeartIcon class="logo-icon" />
+          <img src="/logo.png" alt="Nutri-Check Logo" class="logo-icon" />
           <span class="logo-text">Nutri-Check</span>
         </div>
         <button @click="$router.push('/patient-dashboard')" class="back-btn">
@@ -246,9 +246,20 @@ const formatDate = (timestamp) => {
 }
 
 .logo-icon {
-  width: 2rem;
-  height: 2rem;
-  color: #42b983;
+  height: 3.5rem;
+  width: auto;
+  border-radius: 8px;
+  padding: 0.4rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+  border: 2px solid #42b983;
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .logo-text {

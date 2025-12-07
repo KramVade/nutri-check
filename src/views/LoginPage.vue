@@ -5,7 +5,7 @@
       <div class="nav-container">
         <div class="logo" @click="$router.push('/')">
           <div class="logo-icon">
-            <HeartIcon class="icon" />
+            <img src="/logo.png" alt="Nutri-Check Logo" class="icon" />
           </div>
           <span class="logo-text">Nutri-Check</span>
         </div>
@@ -401,9 +401,20 @@ const handleLogin = async () => {
 }
 
 .logo-icon .icon {
-  width: 2rem;
-  height: 2rem;
-  color: #42b983;
+  height: 3.5rem;
+  width: auto;
+  border-radius: 8px;
+  padding: 0.4rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+  border: 2px solid #42b983;
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-icon .icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .back-btn {
@@ -799,8 +810,8 @@ const handleLogin = async () => {
   }
 
   .logo-icon .icon {
-    width: 1.5rem;
-    height: 1.5rem;
+    height: 3rem;
+    width: auto;
   }
 
   .back-btn {

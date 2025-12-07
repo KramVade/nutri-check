@@ -4,7 +4,7 @@
     <nav class="dashboard-nav">
       <div class="nav-content">
         <div class="logo" @click="$router.push('/dashboard')">
-          <HeartIcon class="logo-icon" />
+          <img src="/logo.png" alt="Nutri-Check Logo" class="logo-icon" />
           <span class="logo-text">Nutri-Check</span>
         </div>
         <div class="nav-actions">
@@ -131,9 +131,9 @@
         </div>
       </div>
 
-      <!-- Quick Actions -->
+      <!-- Manage Patients -->
       <div class="quick-actions-section">
-        <h2 class="section-title">Quick Actions</h2>
+        <h2 class="section-title">Manage Patients</h2>
         <div class="actions-grid">
           <div class="action-card" @click="$router.push('/patient-info')">
             <div class="action-icon-wrapper">
@@ -547,9 +547,20 @@ const handleLogout = () => {
 }
 
 .logo-icon {
-  width: 2rem;
-  height: 2rem;
-  color: #42b983;
+  height: 4.5rem;
+  width: auto;
+  border-radius: 8px;
+  padding: 0.4rem;
+  background: white;
+  box-shadow: 0 2px 8px rgba(66, 185, 131, 0.2);
+  border: 2px solid #42b983;
+  transition: all 0.3s ease;
+  object-fit: contain;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(66, 185, 131, 0.3);
 }
 
 .logo-text {
@@ -758,7 +769,7 @@ const handleLogout = () => {
   height: 1rem;
 }
 
-/* Quick Actions */
+/* Manage Patients Section */
 .quick-actions-section {
   margin-bottom: 3rem;
 }
@@ -777,14 +788,15 @@ const handleLogout = () => {
 }
 
 .action-card {
-  background: white;
+  background: linear-gradient(135deg, #42b983 0%, #2d8a5f 100%);
   padding: 2rem;
   border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(66, 185, 131, 0.4);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .action-card::before {
@@ -793,48 +805,52 @@ const handleLogout = () => {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #42b983 0%, #369e73 100%);
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .action-card:hover::before {
-  transform: scaleX(1);
+  opacity: 1;
 }
 
 .action-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(66, 185, 131, 0.5);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .action-icon-wrapper {
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .action-icon {
   width: 1.75rem;
   height: 1.75rem;
-  color: #42b983;
+  color: white;
 }
 
 .action-title {
   font-size: 1.125rem;
-  font-weight: 600;
-  color: #1a202c;
+  font-weight: 700;
+  color: white;
   margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .action-description {
   font-size: 0.95rem;
-  color: #6b7280;
+  color: rgba(255, 255, 255, 0.9);
   line-height: 1.5;
   margin-bottom: 1rem;
 }
@@ -848,12 +864,13 @@ const handleLogout = () => {
 .arrow-icon {
   width: 1.25rem;
   height: 1.25rem;
-  color: #42b983;
+  color: white;
   transition: transform 0.3s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .action-card:hover .arrow-icon {
-  transform: translateX(4px);
+  transform: translateX(6px);
 }
 
 /* Recent Patients */
