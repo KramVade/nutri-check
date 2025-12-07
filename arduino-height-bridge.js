@@ -19,7 +19,7 @@ const app = express();
 app.use(cors());
 
 // Configuration - CHANGE THIS TO YOUR ARDUINO'S PORT
-const COM_PORT = 'COM4';  // Windows: COM3, COM4, etc. | Mac/Linux: /dev/ttyUSB0, /dev/ttyACM0
+const COM_PORT = 'COM5';  // Windows: COM3, COM4, etc. | Mac/Linux: /dev/ttyUSB0, /dev/ttyACM0
 const BAUD_RATE = 9600;
 const HTTP_PORT = 8081;
 
